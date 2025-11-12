@@ -7,8 +7,16 @@ from libqtile.config import Click, Drag, Group, Key, KeyChord, Match, Screen
 from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 import colors
+import random
 
-colors = colors.Dracula
+# Your list of options
+any_list = ["DoomOne", "Dracula", "GruvboxDark", "MonokaiPro",  "Nord","OceanicNext", "Palenight", "SolarizedDark", "SolarizedLight", "TomorrowNight", "TokyoNight", "TokyoNight"]
+
+# Pick one randomly
+chosen = random.choice(any_list)
+
+colors = getattr(colors, chosen)
+#colors = colors.Dracula
 
 mod = "mod4"
 #terminal = guess_terminal()
@@ -24,13 +32,15 @@ keys = [
     Key([mod], "l", lazy.layout.right(), desc="Move focus to right"),
     Key([mod], "j", lazy.layout.down(), desc="Move focus down"),
     Key([mod], "k", lazy.layout.up(), desc="Move focus up"),
-    Key([mod], "space", lazy.layout.next(), desc="Move window focus to other window"),
+    Key([mod], "space", lazy.spawn("rofi -show drun -show-icons"), desc='Run Launcher'),
+    
     # Move windows between left/right columns or move up/down in current stack.
     # Moving out of range in Columns layout will create new column.
     Key([mod, "shift"], "h", lazy.layout.shuffle_left(), desc="Move window to the left"),
     Key([mod, "shift"], "l", lazy.layout.shuffle_right(), desc="Move window to the right"),
     Key([mod, "shift"], "j", lazy.layout.shuffle_down(), desc="Move window down"),
     Key([mod, "shift"], "k", lazy.layout.shuffle_up(), desc="Move window up"),
+    
     # Grow windows. If current window is on the edge of screen and direction
     # will be to screen edge - window would shrink.
     Key([mod, "control"], "h", lazy.layout.grow_left(), desc="Grow window to the left"),
@@ -38,21 +48,31 @@ keys = [
     Key([mod, "control"], "j", lazy.layout.grow_down(), desc="Grow window down"),
     Key([mod, "control"], "k", lazy.layout.grow_up(), desc="Grow window up"),
     Key([mod], "n", lazy.layout.normalize(), desc="Reset all window sizes"),
+    
     # Toggle between split and unsplit sides of stack.
     # Split = all windows displayed
     # Unsplit = 1 window displayed, like Max layout, but still with
     # multiple stack panes
     Key([mod, "shift"], "Return", lazy.layout.toggle_split(), desc="Toggle between split and unsplit sides of stack"),
     Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
+    
     # Toggle between different layouts as defined below
     Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
     Key([mod], "w", lazy.spawn(myBrowser), desc='Web browser'),
-    #Key([mod], "w", lazy.window.kill(), desc="Kill focused window"),
+    Key([mod], "b", lazy.hide_show_bar(position='all'), desc="Toggles the bar to show/hide"),
+    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
+    Key([mod], "q", lazy.window.kill(), desc="Kill focused window"),
+    Key([mod, "control", "shift"], "q", lazy.spawn("qtile cmd-obj -o cmd -f shutdown"), desc="Logout menu"),
     Key([mod], "f", lazy.window.toggle_fullscreen(), desc="Toggle fullscreen on the focused window"),
     Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating on the focused window"),
     Key([mod, "control"], "r", lazy.reload_config(), desc="Reload the config"),
     Key([mod, "control", "shift"], "q", lazy.shutdown(), desc="Shutdown Qtile"),
     Key([mod], "r", lazy.spawncmd(), desc="Spawn a command using a prompt widget"),
+    
+    Key([mod, "control","mod1"], "up", lazy.spawn("xrandr -o 0"), desc="Window drection up"),
+    Key([mod, "control","mod1"], "left", lazy.spawn("xrandr -o 1"), desc="Window drection left"),
+    Key([mod, "control","mod1"], "down", lazy.spawn("xrandr -o 2"), desc="Window drection down"),
+    Key([mod, "control","mod1"], "right", lazy.spawn("xrandr -o 3"), desc="Window drection right"),
     
     
     KeyChord([mod], "o", [
@@ -75,7 +95,12 @@ for vt in range(1, 8):
     )
 
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+
+# Uncomment only one of the following lines
 group_labels = ["", "", "👁", "", "", "", "✀", "꩜", "", "⎙"]
+#group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+#group_labels = ["DEV", "WWW", "SYS", "DOC", "VBOX", "CHAT", "MUS", "VID", "GFX", "MISC"]
+
 group_layouts = ["monadtall"] * 10
 
 groups = [Group(name=n, label=l, layout=lay) for n, l, lay in zip(group_names, group_labels, group_layouts)]
@@ -89,7 +114,7 @@ keys.extend(
     )
     
 layout_theme = {"border_width": 2,
-                "margin": 6,
+                "margin": 3,
                 "border_focus": "ff00ff",
                 "border_normal": colors[0]
                 }
@@ -98,16 +123,16 @@ layouts = [
     layout.Columns(border_focus_stack=["#d75f5f", "#8f3d3d"], border_width=4),
     layout.Max(),
     # Try more layouts by unleashing below layouts.
-    # layout.Stack(num_stacks=2),
-    # layout.Bsp(),
-    # layout.Matrix(),
+    layout.Stack(num_stacks=2),
+    layout.Bsp(**{"border_width": 2,"margin": 3}),
+    layout.Matrix(**{"border_width": 2,"margin": 3}),
     layout.MonadTall(**layout_theme),
-    # layout.MonadWide(),
-    # layout.RatioTile(),
-    # layout.Tile(),
-    # layout.TreeTab(),
-    # layout.VerticalTile(),
-    # layout.Zoomy(),
+    layout.MonadWide(**{"border_width": 2,"margin": 3}),
+    layout.RatioTile(**{"border_width": 2,"margin": 3}),
+    layout.Tile(**{"border_width": 2,"margin": 3}),
+    layout.TreeTab(**{"border_width": 2,"margin": 3}),
+    layout.VerticalTile(**{"border_width": 2,"margin": 3}),
+    layout.Zoomy(**{"border_width": 2,"margin": 3}),
 ]
 
 widget_defaults = dict(
@@ -116,6 +141,26 @@ widget_defaults = dict(
     padding=3,
 )
 extension_defaults = widget_defaults.copy()
+
+battery = widget.Battery(
+    format='{char}{percent:2.0%} ',
+    charge_char='🔌',
+    discharge_char='🔋',
+    empty_char='⚡',
+    full_char='✅',
+    update_interval=30,
+    low_percentage=20,
+    notify_below=20,
+    show_short_text=False,
+    foreground='#ffffff',
+    low_foreground='#ff5555',
+    full_foreground='#50fa7b',
+    notification_timeout=5,
+    notification_script="paplay /usr/share/sounds/freedesktop/stereo/suspend-error.oga"
+)
+
+
+
 
 #logo = os.path.join(os.path.dirname(libqtile.resources.__file__), "logo.png")
 screens = [
@@ -129,7 +174,15 @@ screens = [
                  ),
                 widget.Prompt(),
                 widget.GroupBox(
-                fontsize=20,
+                 fontsize = 16,
+                 #padding_x = 6,
+                 padding_y = 6,
+                 active = colors[4],
+                 #inactive = colors[9],
+                 rounded = True,
+                 highlight_color = colors[3],
+                 highlight_method = "line",
+                 
                 ),
                 widget.TextBox(
                  text = '|',
@@ -213,23 +266,15 @@ screens = [
                  #padding = 8, 
                  fmt = '🕫{}',
                  ),
-                 widget.Battery(
-    format='{char}{percent:2.0%} ',
-    charge_char='🔌',
-    discharge_char='🔋',
-    empty_char='⚡',
-    full_char='✅',
+                
+ #battery,   # <--- use the variable here
+ widget.GenPollText(
+    func=lambda: subprocess.getoutput("~/.config/qtile/scripts/battery_alert.sh"),
     update_interval=30,
-    low_percentage=20,
-    notify_below=20,
-    show_short_text=False,
-    foreground='ffffff',
-   # background='000000',
-   low_foreground='#ff5555',
-    full_foreground='#50fa7b',
+    foreground='#ffffff'
 ),
                 #widget.Clock(format="%Y-%m-%d %a %I:%M %p"),
-                widget.Clock(foreground = colors[8], format="%I:%M %S"),
+                widget.Clock(foreground = colors[8], format="%S %I:%M"),
                 #widget.QuickExit(),
                 widget.QuickExit(
     default_text='⏻',  # Unicode power icon
@@ -239,7 +284,7 @@ screens = [
     foreground='ff5555',  # Optional: red color
 )
             ],
-            28,
+            26,
             #border_width=[1, 0, 1, 0],  # Draw top and bottom borders
             #border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
         ),
