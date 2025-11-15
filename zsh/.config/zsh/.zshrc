@@ -1,6 +1,13 @@
 # --- First add /etc/zsh/zprofile
 # add this line --> export ZDOTDIR="$HOME/.config/zsh"   
 
+# enable command-not-found (Arch uses pkgfile)
+if [ -f /usr/share/doc/pkgfile/command-not-found.zsh ]; then
+    source /usr/share/doc/pkgfile/command-not-found.zsh
+fi
+
+
+
 # main zsh settings. env in ~/.zprofile
 # read second
 export PATH="$HOME/.local/bin:$PATH"
@@ -9,6 +16,34 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # ~/.bashrc
 export TERM="xterm-256color"
+
+setopt autocd              # change directory just by typing its name
+#setopt correct            # auto correct mistakes
+setopt interactivecomments # allow comments in interactive mode
+setopt magicequalsubst     # enable filename expansion for arguments of the form ‘anything=expression’
+setopt nonomatch           # hide error message if there is no match for the pattern
+setopt notify              # report the status of background jobs immediately
+setopt numericglobsort     # sort filenames numerically when it makes sense
+setopt promptsubst         # enable command substitution in prompt
+
+WORDCHARS=${WORDCHARS//\/} # Don't consider certain characters part of the word
+
+# hide EOL sign ('%')
+PROMPT_EOL_MARK=""
+
+# configure key keybindings
+bindkey -e                                        # emacs key bindings
+bindkey ' ' magic-space                           # do history expansion on space
+bindkey '^U' backward-kill-line                   # ctrl + U
+bindkey '^[[3;5~' kill-word                       # ctrl + Supr
+bindkey '^[[3~' delete-char                       # delete
+bindkey '^[[1;5C' forward-word                    # ctrl + ->
+bindkey '^[[1;5D' backward-word                   # ctrl + <-
+bindkey '^[[5~' beginning-of-buffer-or-history    # page up
+bindkey '^[[6~' end-of-buffer-or-history          # page down
+bindkey '^[[H' beginning-of-line                  # home
+bindkey '^[[F' end-of-line                        # end
+bindkey '^[[Z' undo                               # shift + tab undo last action
 
 
 # -------------------- History Settings --------------------
@@ -24,15 +59,23 @@ setopt hist_ignore_dups           # Ignore consecutive duplicates
 setopt hist_ignore_space          # Ignore commands that start with a space
 setopt hist_verify                # Verify history commands before executing
 
-# Reevaluate the prompt string each time it's displaying a prompt
-# -------------------- Completion & Prompt --------------------
-setopt prompt_subst
-autoload -Uz compinit bashcompinit
-bashcompinit
-compinit
 
-zstyle ':completion:*' menu select
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+# enable completion features
+autoload -Uz compinit
+compinit -d ~/.cache/zcompdump
+zstyle ':completion:*:*:*:*:*' menu select
+zstyle ':completion:*' auto-description 'specify: %d'
+zstyle ':completion:*' completer _expand _complete
+zstyle ':completion:*' format 'Completing %d'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' list-colors ''
+zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' rehash true
+zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+zstyle ':completion:*' use-compctl false
+zstyle ':completion:*' verbose true
+zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
 # -------------------- FZF Setup --------------------
 # fzf setup
@@ -40,10 +83,17 @@ source <(fzf --zsh) # allow for fzf history widget
 bindkey '^R' fzf-history-widget
 
 # Plugin: zsh-syntax-highlighting
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+if [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+    source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
 
 # -------------------- Autosuggestions --------------------
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+# enable auto-suggestions
+if [ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#999'
+fi
+
 bindkey '^w' autosuggest-execute       # Execute the suggestion
 bindkey '^e' autosuggest-accept        # Accept the suggestion
 bindkey '^u' autosuggest-toggle        # Toggle autosuggestions

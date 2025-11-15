@@ -200,12 +200,50 @@ def rmpc_notify_with_icon(cmd, icon_widget):
         subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
                         "⚠️ Error", "MPD command failed"])
 
-# Attach callbacks
+import threading
+
+def rmpc_volume(change, icon_widget):
+    try:
+        # Change volume
+        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", "volume", change], check=True)
+
+        # Get current volume
+        status = subprocess.run(
+            ["mpc", "-h", "localhost", "-p", "6601", "volume"],
+            capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+        # Update icon temporarily
+        if change.startswith("+"):
+            icon_widget.update("🔊")
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            f"🔊 Volume Up", status, "-i", "audio-volume-high"])
+        else:
+            icon_widget.update("🔉")
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            f"🔉 Volume Down", status, "-i", "audio-volume-low"])
+
+        # After 3 seconds, revert back to play/pause/stop icon
+        def revert_icon():
+            rmpc_notify_with_icon("status", icon_widget)
+
+        threading.Timer(3, revert_icon).start()
+
+    except subprocess.CalledProcessError:
+        icon_widget.update("⚠️")
+        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                        "⚠️ Error", "Volume command failed"])
+
+
 play_icon.add_callbacks({
     "Button1": lambda: rmpc_notify_with_icon("play", play_icon),   # Left click → Play
     "Button2": lambda: rmpc_notify_with_icon("stop", play_icon),   # Middle click → Stop
     "Button3": lambda: rmpc_notify_with_icon("pause", play_icon),  # Right click → Pause
+    "Button4": lambda: rmpc_volume("+5", play_icon),               # Scroll up → Volume up + notify
+    "Button5": lambda: rmpc_volume("-5", play_icon),               # Scroll down → Volume down + notify
 })
+
+
 
 
 # --- Skip icon: Previous / Next ---
@@ -235,12 +273,36 @@ def rmpc_skip(cmd, icon_widget):
     except subprocess.CalledProcessError:
         icon_widget.update("⚠️")
         subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                        "⚠️ Error", "MPD command failed"])
+                        "⚠️ Error", "Skip command failed"])
 
-# Attach callbacks (fixed mapping)
+
+def rmpc_seek(offset, icon_widget):
+    try:
+        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", "seek", offset], check=True)
+        song = subprocess.run(
+            ["mpc", "-h", "localhost", "-p", "6601", "current"],
+            capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+        if offset.startswith("+"):
+            icon_widget.update("⏩")
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            f"⏩ Forward {offset}", song, "-i", "media-seek-forward"])
+        else:
+            icon_widget.update("⏪")
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            f"⏪ Backward {offset}", song, "-i", "media-seek-backward"])
+    except subprocess.CalledProcessError:
+        icon_widget.update("⚠️")
+        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                        "⚠️ Error", "Seek command failed"])
+
+# Attach callbacks with scroll for seek
 skip_icon.add_callbacks({
-    "Button1": lambda: rmpc_skip("next", skip_icon),   # Left click → Previous
-    "Button3": lambda: rmpc_skip("prev", skip_icon),   # Right click → Next
+    "Button1": lambda: rmpc_skip("next", skip_icon),   # Left click → Next
+    "Button3": lambda: rmpc_skip("prev", skip_icon),   # Right click → Previous
+    "Button4": lambda: rmpc_seek("+5", skip_icon),     # Scroll up → Forward 5s
+    "Button5": lambda: rmpc_seek("-5", skip_icon),     # Scroll down → Backward 5s
 })
 
 
