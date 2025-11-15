@@ -160,6 +160,89 @@ battery = widget.Battery(
 )
 
 
+# --- Play / Pause / Stop icon ---
+play_icon = widget.TextBox(
+    fontsize=18,
+    foreground="#00ff00",
+    text="▶️",  # start with Play
+)
+
+def rmpc_notify_with_icon(cmd, icon_widget):
+    try:
+        # Run the command
+        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", cmd], check=True)
+
+        # Get status and song
+        status = subprocess.run(
+            ["mpc", "-h", "localhost", "-p", "6601", "status"],
+            capture_output=True, text=True, check=True
+        ).stdout
+        song = subprocess.run(
+            ["mpc", "-h", "localhost", "-p", "6601", "current"],
+            capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+        # Update icon based on state
+        if "[playing]" in status:
+            icon_widget.update("▶️")   # Play icon
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            "▶️ Now Playing", song, "-i", "media-playback-start"])
+        elif "[paused]" in status:
+            icon_widget.update("⏸️")   # Pause icon
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            "⏸️ Paused", song, "-i", "media-playback-pause"])
+        else:
+            icon_widget.update("⏹️")   # Stop icon
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            "⏹️ Stopped", "No track playing", "-i", "media-playback-stop"])
+    except subprocess.CalledProcessError:
+        icon_widget.update("⚠️")
+        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                        "⚠️ Error", "MPD command failed"])
+
+# Attach callbacks
+play_icon.add_callbacks({
+    "Button1": lambda: rmpc_notify_with_icon("play", play_icon),   # Left click → Play
+    "Button2": lambda: rmpc_notify_with_icon("stop", play_icon),   # Middle click → Stop
+    "Button3": lambda: rmpc_notify_with_icon("pause", play_icon),  # Right click → Pause
+})
+
+
+# --- Skip icon: Previous / Next ---
+skip_icon = widget.TextBox(
+    fontsize=18,
+    foreground="#ff00ff",
+    text="⏭️",  # default icon
+)
+
+def rmpc_skip(cmd, icon_widget):
+    try:
+        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", cmd], check=True)
+
+        song = subprocess.run(
+            ["mpc", "-h", "localhost", "-p", "6601", "current"],
+            capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+        if cmd == "next":
+            icon_widget.update("⏭️")  # Next icon
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            "⏭️ Next Song", song, "-i", "media-skip-forward"])
+        elif cmd == "prev":
+            icon_widget.update("⏮️")  # Previous icon
+            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                            "⏮️ Previous Song", song, "-i", "media-skip-backward"])
+    except subprocess.CalledProcessError:
+        icon_widget.update("⚠️")
+        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
+                        "⚠️ Error", "MPD command failed"])
+
+# Attach callbacks (fixed mapping)
+skip_icon.add_callbacks({
+    "Button1": lambda: rmpc_skip("next", skip_icon),   # Left click → Previous
+    "Button3": lambda: rmpc_skip("prev", skip_icon),   # Right click → Next
+})
+
 
 
 #logo = os.path.join(os.path.dirname(libqtile.resources.__file__), "logo.png")
@@ -221,6 +304,10 @@ screens = [
                 # NB Systray is incompatible with Wayland, consider using StatusNotifier instead
                 # widget.StatusNotifier(),
                 widget.Systray(),
+                
+               
+
+                
 	widget.Net(
         	foreground = colors[3],
     		#format="{down:6.2f}{down_suffix:<2}↓↑{up:6.2f}{up_suffix:<2}",
@@ -254,13 +341,16 @@ screens = [
                  update_interval = 60,
                  foreground = colors[5],
                  #padding = 8, 
-                 mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn('/home/karan/.local/bin/notify-disk')},
+                 mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn('/home/karan/.config/qtile/scripts/notify-disk')},
                  partition = '/',
                  #format = '[{p}] {uf}{m} ({r:.0f}%)',
                  format = '{uf}{m}',
                  fmt = '🖴{}',
                  visible_on_warn = False,
                  ),
+                 play_icon,
+                 skip_icon,
+
         widget.Volume(
                  foreground = colors[7],
                  #padding = 8, 
@@ -343,6 +433,8 @@ wl_xcursor_size = 24
 def start_once():
 	home = os.path.expanduser('~')
 	subprocess.call([home + '/.config/qtile/scripts/autostart.sh'])
+	#subprocess.Popen([home + '/.config/qtile/scripts/mpd-notify.sh'], shell=True)
+
 	subprocess.Popen(["nm-applet"])
 	subprocess.Popen(["copyq"])
 #	subprocess.Popen(["xrandr", "--output", "eDP-1", "--same-as", "HDMI-1"])
