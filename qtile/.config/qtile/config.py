@@ -8,6 +8,23 @@ from libqtile.lazy import lazy
 from libqtile.utils import guess_terminal
 import colors
 import random
+from widgets.rmpc import play_icon, skip_icon
+from widgets.battery import battery
+from widgets.net import net
+from widgets.launchbar import launchbar
+from widgets.power import power_icon
+
+
+# import your helper function
+from mymodules.netusage import get_total_usage   
+# assuming you save it in ~/.config/qtile/mymodules/netusage.py
+
+net_usage_widget = widget.GenPollText(
+    func=lambda: get_total_usage("wlan0"),  # call your function
+    update_interval=60,                     # refresh every 60 seconds
+    foreground="#ffffff",                   # text color
+)
+
 
 # Your list of options
 any_list = ["DoomOne", "Dracula", "GruvboxDark", "MonokaiPro",  "Nord","OceanicNext", "Palenight", "SolarizedDark", "SolarizedLight", "TomorrowNight", "TokyoNight", "TokyoNight"]
@@ -103,7 +120,23 @@ group_labels = ["", "", "👁", "", "", "", "✀", "꩜", "", 
 
 group_layouts = ["monadtall"] * 10
 
-groups = [Group(name=n, label=l, layout=lay) for n, l, lay in zip(group_names, group_labels, group_layouts)]
+group_matches = [
+    [Match(wm_class=["kitty"])],              # Group 1
+    [Match(wm_class=["qutebrowser", "brave"])],   # Group 2
+    [Match(wm_class=["code"])],               # Group 3
+    [Match(wm_class=["pcmanfm","thunar"])],            # Group 4
+    [],                                       # Group 5
+    [Match(wm_class=["telegram-desktop"])],   # Group 6
+    [],                                       # Group 7
+    [Match(wm_class=["vlc"])],                # Group 8
+    [],                                       # Group 9
+    [],                                       # Group 0
+]
+
+groups = [
+    Group(name=n, label=l, layout=lay, matches=m)
+    for n, l, lay, m in zip(group_names, group_labels, group_layouts, group_matches)
+]
 
 keys.extend(
         [
@@ -113,7 +146,7 @@ keys.extend(
 ]
     )
     
-layout_theme = {"border_width": 2,
+layout_theme = {"border_width": 3,
                 "margin": 3,
                 "border_focus": "ff00ff",
                 "border_normal": colors[0]
@@ -141,171 +174,6 @@ widget_defaults = dict(
     padding=3,
 )
 extension_defaults = widget_defaults.copy()
-
-battery = widget.Battery(
-    format='{char}{percent:2.0%} ',
-    charge_char='🔌',
-    discharge_char='🔋',
-    empty_char='⚡',
-    full_char='✅',
-    update_interval=30,
-    low_percentage=20,
-    notify_below=20,
-    show_short_text=False,
-    foreground='#ffffff',
-    low_foreground='#ff5555',
-    full_foreground='#50fa7b',
-    notification_timeout=5,
-    notification_script="paplay /usr/share/sounds/freedesktop/stereo/suspend-error.oga"
-)
-
-
-# --- Play / Pause / Stop icon ---
-play_icon = widget.TextBox(
-    fontsize=18,
-    foreground="#00ff00",
-    text="▶️",  # start with Play
-)
-
-def rmpc_notify_with_icon(cmd, icon_widget):
-    try:
-        # Run the command
-        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", cmd], check=True)
-
-        # Get status and song
-        status = subprocess.run(
-            ["mpc", "-h", "localhost", "-p", "6601", "status"],
-            capture_output=True, text=True, check=True
-        ).stdout
-        song = subprocess.run(
-            ["mpc", "-h", "localhost", "-p", "6601", "current"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()
-
-        # Update icon based on state
-        if "[playing]" in status:
-            icon_widget.update("▶️")   # Play icon
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            "▶️ Now Playing", song, "-i", "media-playback-start"])
-        elif "[paused]" in status:
-            icon_widget.update("⏸️")   # Pause icon
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            "⏸️ Paused", song, "-i", "media-playback-pause"])
-        else:
-            icon_widget.update("⏹️")   # Stop icon
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            "⏹️ Stopped", "No track playing", "-i", "media-playback-stop"])
-    except subprocess.CalledProcessError:
-        icon_widget.update("⚠️")
-        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                        "⚠️ Error", "MPD command failed"])
-
-import threading
-
-def rmpc_volume(change, icon_widget):
-    try:
-        # Change volume
-        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", "volume", change], check=True)
-
-        # Get current volume
-        status = subprocess.run(
-            ["mpc", "-h", "localhost", "-p", "6601", "volume"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()
-
-        # Update icon temporarily
-        if change.startswith("+"):
-            icon_widget.update("🔊")
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            f"🔊 Volume Up", status, "-i", "audio-volume-high"])
-        else:
-            icon_widget.update("🔉")
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            f"🔉 Volume Down", status, "-i", "audio-volume-low"])
-
-        # After 3 seconds, revert back to play/pause/stop icon
-        def revert_icon():
-            rmpc_notify_with_icon("status", icon_widget)
-
-        threading.Timer(3, revert_icon).start()
-
-    except subprocess.CalledProcessError:
-        icon_widget.update("⚠️")
-        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                        "⚠️ Error", "Volume command failed"])
-
-
-play_icon.add_callbacks({
-    "Button1": lambda: rmpc_notify_with_icon("play", play_icon),   # Left click → Play
-    "Button2": lambda: rmpc_notify_with_icon("stop", play_icon),   # Middle click → Stop
-    "Button3": lambda: rmpc_notify_with_icon("pause", play_icon),  # Right click → Pause
-    "Button4": lambda: rmpc_volume("+5", play_icon),               # Scroll up → Volume up + notify
-    "Button5": lambda: rmpc_volume("-5", play_icon),               # Scroll down → Volume down + notify
-})
-
-
-
-
-# --- Skip icon: Previous / Next ---
-skip_icon = widget.TextBox(
-    fontsize=18,
-    foreground="#ff00ff",
-    text="⏭️",  # default icon
-)
-
-def rmpc_skip(cmd, icon_widget):
-    try:
-        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", cmd], check=True)
-
-        song = subprocess.run(
-            ["mpc", "-h", "localhost", "-p", "6601", "current"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()
-
-        if cmd == "next":
-            icon_widget.update("⏭️")  # Next icon
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            "⏭️ Next Song", song, "-i", "media-skip-forward"])
-        elif cmd == "prev":
-            icon_widget.update("⏮️")  # Previous icon
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            "⏮️ Previous Song", song, "-i", "media-skip-backward"])
-    except subprocess.CalledProcessError:
-        icon_widget.update("⚠️")
-        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                        "⚠️ Error", "Skip command failed"])
-
-
-def rmpc_seek(offset, icon_widget):
-    try:
-        subprocess.run(["mpc", "-h", "localhost", "-p", "6601", "seek", offset], check=True)
-        song = subprocess.run(
-            ["mpc", "-h", "localhost", "-p", "6601", "current"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()
-
-        if offset.startswith("+"):
-            icon_widget.update("⏩")
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            f"⏩ Forward {offset}", song, "-i", "media-seek-forward"])
-        else:
-            icon_widget.update("⏪")
-            subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                            f"⏪ Backward {offset}", song, "-i", "media-seek-backward"])
-    except subprocess.CalledProcessError:
-        icon_widget.update("⚠️")
-        subprocess.run(["dunstify", "-a", "MPD", "-r", "1234",
-                        "⚠️ Error", "Seek command failed"])
-
-# Attach callbacks with scroll for seek
-skip_icon.add_callbacks({
-    "Button1": lambda: rmpc_skip("next", skip_icon),   # Left click → Next
-    "Button3": lambda: rmpc_skip("prev", skip_icon),   # Right click → Previous
-    "Button4": lambda: rmpc_seek("+5", skip_icon),     # Scroll up → Forward 5s
-    "Button5": lambda: rmpc_seek("-5", skip_icon),     # Scroll down → Backward 5s
-})
-
-
 
 #logo = os.path.join(os.path.dirname(libqtile.resources.__file__), "logo.png")
 screens = [
@@ -336,24 +204,8 @@ screens = [
                  padding = 2,
                  fontsize = 20
                  ),
-                widget.LaunchBar(
-                 progs = [("🦁", "brave", "Brave web browser"),
-                          ("🚀", "kitty", "Kitty terminal"),
-                          ("📁", "pcmanfm", "PCManFM file manager"),
-                          ("🎸", "vlc", "VLC media player")
-                         ], 
-                 fontsize = 20,
-                 padding = 2,
-                 foreground = colors[3],
-        	),
-        	widget.TextBox(
-                 text = '|',
-                 font = "JetBrains Mono NF",
-                 foreground = colors[9],
-                 padding = 2,
-                 fontsize = 20
-                 ),
-                widget.CurrentLayout(),
+                launchbar,
+                widget.CurrentLayout(mode="icon"),
                 widget.WindowName(),
                 widget.Chord(
                     chords_colors={
@@ -366,26 +218,12 @@ screens = [
                 # NB Systray is incompatible with Wayland, consider using StatusNotifier instead
                 # widget.StatusNotifier(),
                 widget.Systray(),
-                
-               
-
-                
-	widget.Net(
-        	foreground = colors[3],
-    		#format="{down:6.2f}{down_suffix:<2}↓↑{up:6.2f}{up_suffix:<2}",
-    		format='{down:.0f}{down_suffix}↓ ↑{up:.0f}{up_suffix}',
-    		interface="wlan0",  # Change to your actual network interface
-    		update_interval=1,
-    		use_bits=False,
-    		prefix=None,
-    		cumulative_prefix=None,
-		),
-	widget.GenPollText(
-    		func=lambda: subprocess.getoutput("python3 ~/.config/qtile/scripts/net_usage.py"),
-    		fmt = '{}',
-    		update_interval=60,
-    		foreground=colors[8]
-		),
+                net,
+                widget.GenPollText(
+    func=lambda: get_total_usage("wlan0"),  # call your function
+    update_interval=60,                     # refresh every 60 seconds
+    foreground=colors[8]                   # text color
+),
 	widget.CPU(
                  foreground = colors[4],
                  #padding = 8, 
@@ -428,13 +266,7 @@ screens = [
                 #widget.Clock(format="%Y-%m-%d %a %I:%M %p"),
                 widget.Clock(foreground = colors[8], format="%S %I:%M"),
                 #widget.QuickExit(),
-                widget.QuickExit(
-    default_text='⏻',  # Unicode power icon
-    countdown_format='[{}]',  # Optional: shows countdown before exit
-    padding=10,
-    fontsize=18,
-    foreground='ff5555',  # Optional: red color
-)
+                power_icon,   # add it here
             ],
             26,
             #border_width=[1, 0, 1, 0],  # Draw top and bottom borders

@@ -26,6 +26,21 @@ setopt notify              # report the status of background jobs immediately
 setopt numericglobsort     # sort filenames numerically when it makes sense
 setopt promptsubst         # enable command substitution in prompt
 
+# -------------------- Shell Behavior --------------------
+# Command behavior and convenience
+setopt autocd                     # Automatically change directories when typing a path
+setopt autopushd                  # Push directory onto the stack with cd
+setopt no_clobber                 # Prevent overwriting files with >
+setopt complete_in_word           # Autocomplete within a word
+setopt extended_glob              # Enable advanced globbing features
+setopt correct                    # Attempt to auto-correct commands
+
+# Prompt and other tweaks
+setopt no_beep                    # Disable terminal beep on error
+setopt prompt_subst               # Enable dynamic prompt evaluation
+setopt interactive_comments       # Allow comments (#) in interactive shells
+setopt no_flow_control            # Disable Ctrl+S and Ctrl+Q flow control
+
 WORDCHARS=${WORDCHARS//\/} # Don't consider certain characters part of the word
 
 # hide EOL sign ('%')
@@ -82,39 +97,34 @@ zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 source <(fzf --zsh) # allow for fzf history widget
 bindkey '^R' fzf-history-widget
 
-# Plugin: zsh-syntax-highlighting
+# Syntax highlighting
 if [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
     source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
-# -------------------- Autosuggestions --------------------
-# enable auto-suggestions
+# Autosuggestions
 if [ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
     source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
     ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#999'
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 fi
 
-bindkey '^w' autosuggest-execute       # Execute the suggestion
-bindkey '^e' autosuggest-accept        # Accept the suggestion
-bindkey '^u' autosuggest-toggle        # Toggle autosuggestions
+# Bind autosuggestions only in vi insert mode
+bindkey -M viins '^e' autosuggest-accept
+bindkey -M viins '^w' autosuggest-execute
+bindkey -M viins '^t' autosuggest-toggle
 
-# -------------------- Keybindings --------------------
-bindkey "^a" beginning-of-line
-bindkey "^e" end-of-line
+# zsh-vi-mode configuration
+#ZVM_LINE_INIT_MODE=insert        # start in insert mode
+ZVM_VI_INSERT_ESCAPE_BINDKEY=jj  # use 'jj' to leave insert mode
+ZVM_INIT_MODE=sourcing           # faster startup
+ZVM_PROMPT_SYMBOLS=(INSERT:NORMAL)
 
-bindkey -M viins '^?' backward-delete-char
-bindkey -M viins '^H' backward-delete-char
+# Load zsh-vi-mode
+if [ -f /usr/share/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh ]; then
+    source /usr/share/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+fi
 
-autoload -Uz zle-bracketed-paste
-zle -N zle-bracketed-paste
-
-# ctrl J & K for going up and down in prev commands
-bindkey "^J" history-search-forward
-bindkey "^K" history-search-backward
-
-bindkey '^k' up-line-or-search         # Search up in history
-bindkey '^j' down-line-or-search       # Search down in history
-bindkey '^L' vi-forward-word           # Move forward by one word in vi mode
 
 # You may need to manually set your language environment
 # -------------------- Environment --------------------
@@ -135,23 +145,6 @@ return 2
             print -sr -- ${=${LASTHIST%%\'\\n\'}}
         fi
     }
-
-
-# -------------------- Shell Behavior --------------------
-# Command behavior and convenience
-setopt autocd                     # Automatically change directories when typing a path
-setopt autopushd                  # Push directory onto the stack with cd
-setopt no_clobber                 # Prevent overwriting files with >
-setopt complete_in_word           # Autocomplete within a word
-setopt extended_glob              # Enable advanced globbing features
-setopt correct                    # Attempt to auto-correct commands
-
-# Prompt and other tweaks
-setopt no_beep                    # Disable terminal beep on error
-setopt prompt_subst               # Enable dynamic prompt evaluation
-setopt interactive_comments       # Allow comments (#) in interactive shells
-setopt no_flow_control            # Disable Ctrl+S and Ctrl+Q flow control
-
 
 # -------------------- Git Aliases --------------------
 # Core Git Aliases
@@ -223,30 +216,24 @@ alias dvc="docker volume create"      # Create a new Docker volume
 alias dvls="docker volume ls"         # List all Docker volumes
 alias dvrm="docker volume rm"         # Remove a specific Docker volume
 
-# -------------------- Directory Shortcuts --------------------
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias .....="cd ../../../.."
-alias ......="cd ../../../../.."
 
 # -------------------- Tools & Utilities --------------------
-alias v="nvim"
 alias cl="clear"
 alias http="xh"
 alias mat='tmux neww "cmatrix"'
 #alias mat='osascript -e "tell application \"System Events\" to key code 126 using {command down}" && tmux neww "cmatrix"'
 
-# VI Mode!!!
-bindkey jj vi-cmd-mode
 
 # -------------------- Eza Aliases --------------------
-alias l="eza -l --icons --git -a"                    # Detailed list with icons, git, and hidden files
-alias lt="eza --tree --level=2 --long --icons --git" # Tree view, level 2, with icons and git
-alias ltree="eza --tree --level=2 --icons --git"     # Tree view, level 2, with icons and git
-alias ls="eza --icons"                               # Simple list with icons
-alias ll="eza --long --icons"                        # Long list with icons
-alias tree="eza --tree --icons"                      # Tree view with icons
+# File system
+if command -v eza &> /dev/null; then
+  alias ls='eza -lh --group-directories-first --icons=auto'
+  alias lsa='ls -a'
+  alias lt='eza --tree --level=2 --long --icons --git'
+  alias lta='lt -a'
+fi
+
+alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
 
 # -------------------- Bat as Cat --------------------
 # Replace `cat` with `bat` for better file preview
@@ -266,6 +253,16 @@ function y() {
 # ---- Zoxide (better cd) ----
 eval "$(zoxide init zsh)"
 alias cd="z"
+
+n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
+
+# -------------------- Directory Shortcuts --------------------
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+alias ......="cd ../../../../.."
+
 
 # -------------------- Shell Switching --------------------
 # switch between shells
