@@ -14,4 +14,3 @@ launchbar = widget.LaunchBar(
     padding=2,
     foreground="#ffffff",  # or use colors[3] if you import your color scheme
 )
-
