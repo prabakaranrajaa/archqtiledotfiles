@@ -19,15 +19,10 @@ from widgets.power import power_icon
 from mymodules.netusage import get_total_usage   
 # assuming you save it in ~/.config/qtile/mymodules/netusage.py
 
-net_usage_widget = widget.GenPollText(
-    func=lambda: get_total_usage("wlan0"),  # call your function
-    update_interval=60,                     # refresh every 60 seconds
-    foreground="#ffffff",                   # text color
-)
 
 
 # Your list of options
-any_list = ["DoomOne", "Dracula", "GruvboxDark", "MonokaiPro",  "Nord","OceanicNext", "Palenight", "SolarizedDark", "SolarizedLight", "TomorrowNight", "TokyoNight", "TokyoNight"]
+any_list = ["DoomOne", "Dracula", "GruvboxDark", "MonokaiPro",  "Nord","OceanicNext", "Palenight", "SolarizedDark", "SolarizedLight", "TomorrowNight", "TokyoNight"]
 
 # Pick one randomly
 chosen = random.choice(any_list)
@@ -35,11 +30,18 @@ chosen = random.choice(any_list)
 colors = getattr(colors, chosen)
 #colors = colors.Dracula
 
+net_usage_widget = widget.GenPollText(
+    func=lambda: get_total_usage("wlan0"),
+    update_interval=60,
+    foreground=colors[8],
+)
+
 mod = "mod4"
 #terminal = guess_terminal()
-mod = "mod4"              # Sets mod key to SUPER/WINDOWS
-terminal = "kitty"      # My terminal of choice
+mod = "mod4"              	# Sets mod key to SUPER/WINDOWS
+myTerm = "kitty"      		# My terminal of choice
 myBrowser = "qutebrowser"       # My browser of choice
+myFile = "dolphin"
 
 keys = [
     # A list of available commands that can be bound to keys can be found
@@ -71,13 +73,14 @@ keys = [
     # Unsplit = 1 window displayed, like Max layout, but still with
     # multiple stack panes
     Key([mod, "shift"], "Return", lazy.layout.toggle_split(), desc="Toggle between split and unsplit sides of stack"),
-    Key([mod], "Return", lazy.spawn(terminal), desc="Launch terminal"),
+    Key([mod], "Return", lazy.spawn(myTerm), desc="Launch terminal"),
     
     # Toggle between different layouts as defined below
     Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
     Key([mod], "w", lazy.spawn(myBrowser), desc='Web browser'),
+    Key([mod], "e", lazy.spawn(myFile), desc='Web browser'),
     Key([mod], "b", lazy.hide_show_bar(position='all'), desc="Toggles the bar to show/hide"),
-    Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
+    #Key([mod], "Tab", lazy.next_layout(), desc="Toggle between layouts"),
     Key([mod], "q", lazy.window.kill(), desc="Kill focused window"),
     Key([mod, "control", "shift"], "q", lazy.spawn("qtile cmd-obj -o cmd -f shutdown"), desc="Logout menu"),
     Key([mod], "f", lazy.window.toggle_fullscreen(), desc="Toggle fullscreen on the focused window"),
@@ -121,14 +124,15 @@ group_labels = ["", "", "👁", "", "", "", "✀", "꩜", "", 
 group_layouts = ["monadtall"] * 10
 
 group_matches = [
-    [Match(wm_class=["kitty"])],              # Group 1
-    [Match(wm_class=["qutebrowser", "brave"])],   # Group 2
-    [Match(wm_class=["code"])],               # Group 3
-    [Match(wm_class=["pcmanfm","thunar"])],            # Group 4
+    #[Match(wm_class=["kitty"])],              
+    [],					      # Group 1	
+    [],   				      # Group 2
+    [],               			      # Group 3
+    [],            			      # Group 4
     [],                                       # Group 5
-    [Match(wm_class=["telegram-desktop"])],   # Group 6
+    [],   				      # Group 6
     [],                                       # Group 7
-    [Match(wm_class=["vlc"])],                # Group 8
+    [],                			      # Group 8
     [],                                       # Group 9
     [],                                       # Group 0
 ]
@@ -168,6 +172,35 @@ layouts = [
     layout.Zoomy(**{"border_width": 2,"margin": 3}),
 ]
 
+# Define default groups for first instance
+default_groups = {
+    "kitty": "1",          # terminal → group 1
+    "qutebrowser": "2",    # browser → group 2
+    "brave": "2",          # browser → group 2
+    "pcmanfm": "4",        # file manager → group 4
+    "thunar": "4",         # file manager → group 4
+}
+
+@hook.subscribe.client_new
+def move_first_instance(client):
+    wm_class = client.window.get_wm_class()
+    if not wm_class:
+        return
+
+    for cls in wm_class:
+        if cls in default_groups:
+            target_group = default_groups[cls]
+            group = client.qtile.groups_map[target_group]
+
+            # If this group already has one of this class → leave new window where it spawns
+            if any(w.window.get_wm_class() and cls in w.window.get_wm_class()
+                   for w in group.windows):
+                return
+
+            # Otherwise → move the first instance to its default group
+            client.togroup(target_group)
+            return
+
 widget_defaults = dict(
     font="JetBrains Mono NF",
     fontsize=16,
@@ -181,7 +214,7 @@ screens = [
         top=bar.Bar(
             [
                 widget.Image(
-                 filename = "~/.config/qtile/icons/p.png",
+                 filename = os.path.expanduser("~/.config/qtile/icons/p.png"),
                  scale = "False",
                  mouse_callbacks = {'Button1': lambda: qtile.cmd_spawn("rofi -show drun -show-icons")},
                  ),
@@ -219,11 +252,7 @@ screens = [
                 # widget.StatusNotifier(),
                 widget.Systray(),
                 net,
-                widget.GenPollText(
-    func=lambda: get_total_usage("wlan0"),  # call your function
-    update_interval=60,                     # refresh every 60 seconds
-    foreground=colors[8]                   # text color
-),
+                net_usage_widget,
 	widget.CPU(
                  foreground = colors[4],
                  #padding = 8, 
@@ -264,7 +293,7 @@ screens = [
     foreground='#ffffff'
 ),
                 #widget.Clock(format="%Y-%m-%d %a %I:%M %p"),
-                widget.Clock(foreground = colors[8], format="%S %I:%M"),
+                widget.Clock(foreground = colors[8], format="%I:%M"),
                 #widget.QuickExit(),
                 power_icon,   # add it here
             ],
@@ -273,7 +302,7 @@ screens = [
             #border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
         ),
         background="#000000",
-        wallpaper="~/Pictures/Wallpapers/kill.jpeg",
+        wallpaper=os.path.expanduser("~/Pictures/Wallpapers/kill.jpeg"),
         wallpaper_mode="fill",       #center",
         # You can uncomment this variable if you see that on X11 floating resize/moving is laggy
         # By default we handle these events delayed to already improve performance, however your system might still be struggling

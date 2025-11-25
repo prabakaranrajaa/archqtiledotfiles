@@ -60,13 +60,22 @@ c.colors.tooltip.bg = "#1e1e2e"
 c.colors.webpage.bg = "#1e1e2e"
 
 # === Fonts ===
-c.fonts.default_family = []
+#c.fonts.default_family = []
+#c.fonts.default_size = '12pt'
+#c.fonts.web.size.default = 20
+#c.fonts.web.family.fixed = 'monospace'
+#c.fonts.web.family.sans_serif = 'monospace'
+#c.fonts.web.family.serif = 'monospace'
+#c.fonts.web.family.standard = 'monospace'
+
+c.fonts.default_family = ['Roboto']
 c.fonts.default_size = '12pt'
 c.fonts.web.size.default = 20
-c.fonts.web.family.fixed = 'monospace'
-c.fonts.web.family.sans_serif = 'monospace'
-c.fonts.web.family.serif = 'monospace'
-c.fonts.web.family.standard = 'monospace'
+c.fonts.web.family.fixed = 'Roboto, monospace'
+c.fonts.web.family.sans_serif = 'Roboto, sans-serif'
+c.fonts.web.family.serif = 'Roboto, serif'
+c.fonts.web.family.standard = 'Roboto, sans-serif'
+
 
 # === Dark Mode ===
 c.colors.webpage.darkmode.enabled = True
@@ -120,6 +129,18 @@ config.bind('gK', 'tab-move -')
 config.bind('gm', 'tab-move')
 config.bind('=' , 'zoom-in')
 config.bind('0' , 'zoom 100')
+
+# Open YouTube in app mode
+c.aliases['yt'] = 'open --new-instance https://www.youtube.com'
+
+# Open Facebook in app mode
+c.aliases['fb'] = 'open --new-instance https://www.facebook.com'
+
+# Open Instagram in app mode
+c.aliases['ins'] = 'open --new-instance https://www.instagram.com'
+
+# Open WhatsApp in app mode
+c.aliases['wa'] = 'open --new-instance https://web.whatsapp.com'
 # === Autoconfig ===+
 config.load_autoconfig()
 

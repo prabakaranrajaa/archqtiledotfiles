@@ -4,6 +4,7 @@ dunst &
 xrandr --output HDMI-1 --primary &
 xrandr --output HDMI-1 --same-as eDP-1 &
 xinput set-button-map 15 3 2 1 &
+xinput set-button-map 12 3 2 1 &
 picom --config ~/.config/picom/picom.conf &
 #feh --bg-scale ~/Pictures/Wallpapers/kill.jpeg &
 

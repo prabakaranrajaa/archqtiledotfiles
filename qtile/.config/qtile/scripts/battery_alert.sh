@@ -19,7 +19,7 @@ fi
 FLAG="/tmp/battery_low_alerted"
 
 # Low battery alert (only once until recovered)
-if [ "$PERCENT" -lt 20 ]; then
+if [ "$PERCENT" -lt 15 ]; then
     if [ ! -f "$FLAG" ]; then
         paplay /usr/share/sounds/freedesktop/stereo/suspend-error.oga &
         touch "$FLAG"

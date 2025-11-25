@@ -263,19 +263,25 @@ alias ....="cd ../../.."
 alias .....="cd ../../../.."
 alias ......="cd ../../../../.."
 
+alias yt='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.youtube.com'
+alias fb='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.facebook.com'
+alias ins='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.instagram.com'
+alias wa='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://web.whatsapp.com'
+
+# -------------------- Fastfetch Banner --------------------
+#fastfetch | lolcat
+
+# -------------------- Fastfetch Banner --------------------
+if [[ -z "$FASTFETCH_SHOWN" ]]; then
+    FASTFETCH_SHOWN=1
+    fastfetch
+fi
+
 
 # -------------------- Shell Switching --------------------
 # switch between shells
 alias tobash="sudo chsh $USER -s /bin/bash && echo 'Now log out.'"
 #alias tozsh="sudo chsh $USER -s /bin/zsh && echo 'Now log out.'"
-
-# -------------------- Fastfetch Banner --------------------
-#fastfetch | lolcat
-
-fastfetch
-
-
-
 
 # -------------------- Powerlevel10k --------------------
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.config/zsh/.zshrc.
@@ -287,3 +293,4 @@ fi
 source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
 # To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
 [[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
+
