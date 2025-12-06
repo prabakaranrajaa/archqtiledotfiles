@@ -20,6 +20,12 @@ from mymodules.netusage import get_total_usage
 
 # assuming you save it in ~/.config/qtile/mymodules/netusage.py
 
+# Path to your wallpapers folder
+wallpaper_dir = os.path.expanduser("~/Pictures/Wallpapers")
+
+# Pick a random file from the folder
+wallpaper = random.choice(os.listdir(wallpaper_dir))
+wallpaper_path = os.path.join(wallpaper_dir, wallpaper)
 
 # Your list of options
 any_list = [
@@ -53,7 +59,7 @@ mod = "mod4"
 mod = "mod4"  # Sets mod key to SUPER/WINDOWS
 myTerm = "kitty"  # My terminal of choice
 myBrowser = "qutebrowser"  # My browser of choice
-myFile = "dolphin"
+myFile = "thunar"
 
 keys = [
     # A list of available commands that can be bound to keys can be found
@@ -159,7 +165,7 @@ keys = [
         "o",
         [
             Key([], "b", lazy.spawn("brave")),
-            Key([], "f", lazy.spawn("pcmanfm")),
+            Key([], "f", lazy.spawn("thunar")),
         ],
         name="launch",
     ),
@@ -395,7 +401,7 @@ screens = [
             # border_color=["ff00ff", "000000", "ff00ff", "000000"]  # Borders are magenta
         ),
         background="#000000",
-        wallpaper=os.path.expanduser("~/Pictures/Wallpapers/kill.jpeg"),
+        wallpaper=wallpaper_path,
         wallpaper_mode="fill",  # center",
         # You can uncomment this variable if you see that on X11 floating resize/moving is laggy
         # By default we handle these events delayed to already improve performance, however your system might still be struggling

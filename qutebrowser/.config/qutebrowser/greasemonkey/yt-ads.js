@@ -1,20 +1,25 @@
 // ==UserScript==
-// for more updated scripts, see: https://greasyfork.org/en/scripts/by-site/youtube.com
-// @name         Auto Skip YouTube Ads
-// @version      1.1.0
-// @description  Speed up and skip YouTube ads automatically
-// @author       jso8910 and others
+// @name         Auto Skip YouTube Ads (Improved)
+// @version      1.2.0
+// @description  Automatically skip YouTube ads
 // @match        *://*.youtube.com/*
 // ==/UserScript==
 
+(function() {
+    'use strict';
 
-document.addEventListener('load', () => {
-    const btn = document.querySelector('.videoAdUiSkipButton,.ytp-ad-skip-button-modern')
-    if (btn) {
-        btn.click()
-    }
-    const ad = [...document.querySelectorAll('.ad-showing')][0];
-    if (ad) {
-        document.querySelector('video').currentTime = 9999999999;
-    }
-}, true);
+    setInterval(() => {
+        // Try to click skip button
+        const skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-container');
+        if (skipBtn) {
+            skipBtn.click();
+        }
+
+        // If an ad is playing, jump to end
+        const video = document.querySelector('video');
+        if (video && video.duration > 0 && document.querySelector('.ad-showing')) {
+            video.currentTime = video.duration;
+        }
+    }, 1000); // check every second
+})();
+
