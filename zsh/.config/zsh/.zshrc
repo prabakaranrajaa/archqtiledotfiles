@@ -263,6 +263,9 @@ alias ....="cd ../../.."
 alias .....="cd ../../../.."
 alias ......="cd ../../../../.."
 
+alias yayf='yay -Qq | fzf --preview "yay -Qi {}" --bind "enter:execute(yay -S {} --noconfirm)"'
+
+
 alias yt='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.youtube.com'
 alias fb='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.facebook.com'
 alias ins='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.instagram.com'
