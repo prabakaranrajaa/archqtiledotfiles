@@ -39,7 +39,7 @@ window#waybar {
 #workspaces {
   margin-left: 10px;
   padding: 0 3px;
-  border-radius: 10px;
+  border-radius: 10px 0 0 10px;
 }
 
 #workspaces button {
@@ -76,8 +76,8 @@ window#waybar {
 /* ───────────────────────── Window Title ───────────────────────── */
 
 #window {
-  margin: 0 60px;
-  border-radius: 10px;
+  border-radius: 0 10px 10px 0;
+  color: rgb(170, 131, 209);
 }
 
 /* ───────────────────────── Clock ───────────────────────── */
@@ -105,7 +105,7 @@ window#waybar {
   color: #f660f1;
 }
 
-#pulseaudio.microphone {
+#pulseaudio#microphone {
   color: #a6adc8;
 }
 

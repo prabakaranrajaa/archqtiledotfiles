@@ -1,50 +1,47 @@
 # --- First add /etc/zsh/zprofile
 # add this line --> export ZDOTDIR="$HOME/.config/zsh"   
+# main zsh settings. env in ~/.zprofile
 
-# enable command-not-found (Arch uses pkgfile)
-if [ -f /usr/share/doc/pkgfile/command-not-found.zsh ]; then
-    source /usr/share/doc/pkgfile/command-not-found.zsh
+# EARLY INIT (ALLOWED TO PRINT)
+# command-not-found (Arch / pkgfile)
+if [[ -f /usr/share/doc/pkgfile/command-not-found.zsh ]]; then
+  source /usr/share/doc/pkgfile/command-not-found.zsh
 fi
 
+# fastfetch (once per session)
+if [[ -z "$FASTFETCH_SHOWN" ]] && command -v fastfetch >/dev/null; then
+  FASTFETCH_SHOWN=1
+  fastfetch
+fi
 
+# Powerlevel10k Instant Prompt (MUST BE SILENT & FIRST)
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
 
-# main zsh settings. env in ~/.zprofile
-# read second
-export PATH="$HOME/.local/bin:$PATH"
+# -------------------- Shell Options / Behavior --------------------
+# Directory navigation
+setopt autocd             # Change directory just by typing its name
+setopt autopushd          # Push directory onto the stack with cd
 
-#setopt autocd
+# Command behavior
+setopt correct            # Attempt to auto-correct commands
+setopt complete_in_word   # Autocomplete within a word
+setopt extended_glob      # Enable advanced globbing
+setopt magicequalsubst    # Enable filename expansion like var=expression
+setopt nonomatch          # Hide error if a glob pattern matches nothing
+setopt no_clobber         # Prevent overwriting files with >
 
-# ~/.bashrc
-export TERM="xterm-256color"
-
-setopt autocd              # change directory just by typing its name
-#setopt correct            # auto correct mistakes
-setopt interactivecomments # allow comments in interactive mode
-setopt magicequalsubst     # enable filename expansion for arguments of the form ‘anything=expression’
-setopt nonomatch           # hide error message if there is no match for the pattern
-setopt notify              # report the status of background jobs immediately
-setopt numericglobsort     # sort filenames numerically when it makes sense
-setopt promptsubst         # enable command substitution in prompt
-
-# -------------------- Shell Behavior --------------------
-# Command behavior and convenience
-setopt autocd                     # Automatically change directories when typing a path
-setopt autopushd                  # Push directory onto the stack with cd
-setopt no_clobber                 # Prevent overwriting files with >
-setopt complete_in_word           # Autocomplete within a word
-setopt extended_glob              # Enable advanced globbing features
-setopt correct                    # Attempt to auto-correct commands
-
-# Prompt and other tweaks
-setopt no_beep                    # Disable terminal beep on error
-setopt prompt_subst               # Enable dynamic prompt evaluation
-setopt interactive_comments       # Allow comments (#) in interactive shells
-setopt no_flow_control            # Disable Ctrl+S and Ctrl+Q flow control
+# Prompt & interactive tweaks
+setopt promptsubst            # Enable command substitution in prompt
+setopt interactive_comments   # Allow comments (#) in interactive shells
+setopt no_beep                # Disable terminal beep on errors
+setopt notify                 # Report background job status immediately
+setopt numeric_glob_sort      # Sort filenames numerically when possible
+setopt no_flow_control        # Disable Ctrl+S / Ctrl+Q terminal flow control
 
 WORDCHARS=${WORDCHARS//\/} # Don't consider certain characters part of the word
-
-# hide EOL sign ('%')
-PROMPT_EOL_MARK=""
+PROMPT_EOL_MARK=""         # hide EOL sign ('%')
 
 # configure key keybindings
 bindkey -e                                        # emacs key bindings
@@ -60,12 +57,12 @@ bindkey '^[[H' beginning-of-line                  # home
 bindkey '^[[F' end-of-line                        # end
 bindkey '^[[Z' undo                               # shift + tab undo last action
 
-
 # -------------------- History Settings --------------------
-HISTFILE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh_history" # move histfile to cache
+HISTFILE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zsh_history" # move histfile to cache
 HISTSIZE=100000                   # Number of commands to keep in memory
 SAVEHIST=100000                   # Number of commands to save in the history file
 
+# History behavior
 setopt append_history             # Append new history to the file, rather than overwriting
 setopt inc_append_history         # Save each command to the history file as it's entered
 setopt share_history              # Share history across all Zsh sessions
@@ -73,7 +70,7 @@ setopt hist_ignore_all_dups       # Remove all duplicate commands from the histo
 setopt hist_ignore_dups           # Ignore consecutive duplicates
 setopt hist_ignore_space          # Ignore commands that start with a space
 setopt hist_verify                # Verify history commands before executing
-
+setopt hist_save_no_dups          # Don't write duplicate commands to the history file
 
 # enable completion features
 autoload -Uz compinit
@@ -83,68 +80,105 @@ zstyle ':completion:*' auto-description 'specify: %d'
 zstyle ':completion:*' completer _expand _complete
 zstyle ':completion:*' format 'Completing %d'
 zstyle ':completion:*' group-name ''
-zstyle ':completion:*' list-colors ''
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|=*'
 zstyle ':completion:*' rehash true
 zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
 zstyle ':completion:*' use-compctl false
 zstyle ':completion:*' verbose true
 zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
-# -------------------- FZF Setup --------------------
-# fzf setup
-source <(fzf --zsh) # allow for fzf history widget
-bindkey '^R' fzf-history-widget
+# FZF
+if command -v fzf >/dev/null; then
+  source <(fzf --zsh) 2>/dev/null
+  bindkey '^R' fzf-history-widget
+fi
 
-# Syntax highlighting
-if [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+# Zsh Plugins: Syntax Highlighting, Autosuggestions, Vi Mode
+# -------------------- Syntax Highlighting --------------------
+# MUST be last plugin to source
+if [[ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
     source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
-# Autosuggestions
-if [ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+# -------------------- Autosuggestions --------------------
+if [[ -f /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
     source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
     ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=#999'
     ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+    # Bind autosuggestions only in vi insert mode
+    bindkey -M viins '^e' autosuggest-accept   # Ctrl+E to accept suggestion
+    bindkey -M viins '^w' autosuggest-execute  # Ctrl+W to execute suggestion
+    bindkey -M viins '^t' autosuggest-toggle   # Ctrl+T to toggle suggestion
 fi
 
-# Bind autosuggestions only in vi insert mode
-bindkey -M viins '^e' autosuggest-accept
-bindkey -M viins '^w' autosuggest-execute
-bindkey -M viins '^t' autosuggest-toggle
+# -------------------- Zsh Vi Mode --------------------
+# Optional: start in insert mode (uncomment if needed)
+# ZVM_LINE_INIT_MODE=insert        
 
-# zsh-vi-mode configuration
-#ZVM_LINE_INIT_MODE=insert        # start in insert mode
-ZVM_VI_INSERT_ESCAPE_BINDKEY=jj  # use 'jj' to leave insert mode
+ZVM_VI_INSERT_ESCAPE_BINDKEY=jj  # 'jj' leaves insert mode
 ZVM_INIT_MODE=sourcing           # faster startup
 ZVM_PROMPT_SYMBOLS=(INSERT:NORMAL)
 
-# Load zsh-vi-mode
-if [ -f /usr/share/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh ]; then
+if [[ -f /usr/share/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh ]]; then
     source /usr/share/zsh/plugins/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 fi
 
-
-# You may need to manually set your language environment
-# -------------------- Environment --------------------
-export LANG=en_US.UTF-8
-
-# -------------------- History Filter --------------------
-# Only save successful commands
-function zshaddhistory() {
-# Remove line continuations for cleaner history
-LASTHIST=${1//\\\\$\'\\n\'/}
-# Return 2 to save to internal history but not write to file
-return 2
+# History Filter: Save only successful commands
+# zshaddhistory is called before a command is saved
+zshaddhistory() {
+    # Remove line continuations for cleaner history
+    LASTHIST=${1//\\\\$\'\\n\'/}
+    # Return 2 to save to internal history but not write to file yet
+    return 2
 }
 
-    function precmd() {
-        # Write the last command if successful
-        if [[ $? == 0 && -n ${LASTHIST//[[:space:]\\n]/} && -n $HISTFILE ]] ; then
-            print -sr -- ${=${LASTHIST%%\'\\n\'}}
-        fi
-    }
+# precmd is called before each prompt
+precmd() {
+    # Save last command to history only if it succeeded
+    if [[ $? -eq 0 && -n ${LASTHIST//[[:space:]\\n]/} && -n $HISTFILE ]]; then
+        print -sr -- ${=${LASTHIST%%\'\\n\'}}
+    fi
+}
+
+# Tools
+# Zoxide
+eval "$(zoxide init zsh)"
+
+# Yazi
+y() {
+  local tmp="$(mktemp -t yazi-cwd.XXXXXX)" cwd
+  yazi "$@" --cwd-file="$tmp"
+  if cwd="$(<"$tmp")" && [[ -n "$cwd" && "$cwd" != "$PWD" ]]; then
+    cd "$cwd"
+  fi
+  rm -f "$tmp"
+}
+
+# Neovim shortcut
+n() { [[ $# -eq 0 ]] && nvim . || nvim "$@"; }
+
+# Aliases
+# -------------------- Directory Shortcuts --------------------
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+alias ......="cd ../../../../.."
+
+# -------------------- Yay / Package Shortcuts --------------------
+# Fuzzy search installed packages with preview and install on Enter
+alias yayf='yay -Qq | fzf --preview "yay -Qi {}" --bind "enter:execute(yay -S {} --noconfirm)"'
+
+# -------------------- Web Shortcuts --------------------
+# Open websites in qutebrowser with minimal UI
+alias yt='nohup qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.youtube.com >/dev/null 2>&1 & disown'
+alias x='nohup qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.x.com >/dev/null 2>&1 & disown'
+alias fb='nohup qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.facebook.com >/dev/null 2>&1 & disown'
+alias ins='nohup qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.instagram.com >/dev/null 2>&1 & disown'
+alias wa='nohup qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://web.whatsapp.com >/dev/null 2>&1 & disown'
 
 # -------------------- Git Aliases --------------------
 # Core Git Aliases
@@ -182,7 +216,6 @@ alias gpu="git pull origin"          # Pull the latest changes from remote 'orig
 alias gre="git reset"                # Reset the current HEAD to a specific state
 alias gco="git checkout"             # Checkout a branch or paths to the working tree
 
-
 # -------------------- Docker Aliases --------------------
 # Docker Compose Aliases
 alias dco="docker compose"     # Simplified 'docker compose' command
@@ -216,14 +249,6 @@ alias dvc="docker volume create"      # Create a new Docker volume
 alias dvls="docker volume ls"         # List all Docker volumes
 alias dvrm="docker volume rm"         # Remove a specific Docker volume
 
-
-# -------------------- Tools & Utilities --------------------
-alias cl="clear"
-alias http="xh"
-alias mat='tmux neww "cmatrix"'
-#alias mat='osascript -e "tell application \"System Events\" to key code 126 using {command down}" && tmux neww "cmatrix"'
-
-
 # -------------------- Eza Aliases --------------------
 # File system
 if command -v eza &> /dev/null; then
@@ -233,67 +258,14 @@ if command -v eza &> /dev/null; then
   alias lta='lt -a'
 fi
 
+alias cat='bat'
 alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
-
-# -------------------- Bat as Cat --------------------
-# Replace `cat` with `bat` for better file preview
-alias cat="bat"                            # Use bat as a replacement for cat
-
-# -------------------- Yazi Integration --------------------
-#yazi command
-function y() {
-	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
-	yazi "$@" --cwd-file="$tmp"
-	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
-		builtin cd -- "$cwd"
-	fi
-	rm -f -- "$tmp"
-}
-
-# ---- Zoxide (better cd) ----
-eval "$(zoxide init zsh)"
-alias cd="z"
-
-n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
-
-# -------------------- Directory Shortcuts --------------------
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias .....="cd ../../../.."
-alias ......="cd ../../../../.."
-
-alias yayf='yay -Qq | fzf --preview "yay -Qi {}" --bind "enter:execute(yay -S {} --noconfirm)"'
-
-
-alias yt='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.youtube.com'
-alias fb='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.facebook.com'
-alias ins='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://www.instagram.com'
-alias wa='qutebrowser --set tabs.show never --set window.hide_decoration true --target window https://web.whatsapp.com'
-
-# -------------------- Fastfetch Banner --------------------
-#fastfetch | lolcat
-
-# -------------------- Fastfetch Banner --------------------
-if [[ -z "$FASTFETCH_SHOWN" ]]; then
-    FASTFETCH_SHOWN=1
-    fastfetch
-fi
-
 
 # -------------------- Shell Switching --------------------
 # switch between shells
 alias tobash="sudo chsh $USER -s /bin/bash && echo 'Now log out.'"
 #alias tozsh="sudo chsh $USER -s /bin/zsh && echo 'Now log out.'"
 
-# -------------------- Powerlevel10k --------------------
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.config/zsh/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# Powerlevel10k Theme
 source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
-# To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
-[[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh
-
+[[ -f ~/.config/zsh/.p10k.zsh ]] && source ~/.config/zsh/.p10k.zsh
